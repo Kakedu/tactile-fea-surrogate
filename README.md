@@ -37,11 +37,11 @@ and publishes code, data and failure cases.
 ## Repository layout
 
 ```
-fea/          Hertz solution, PyMAPDL contact model, batch dataset generation
+fea/          Hertz and thin-layer solutions, open-source FEM solver, PyMAPDL contact model, dataset generation
 materials/    hyperelastic model fitting from compression tests
-surrogate/    surrogate models (v0: force only)
+surrogate/    surrogate models (force model, surface-profile baseline)
 experiments/  measurement templates, comparison scripts, synthetic examples
-docs/         experiment protocol, shopping list, development log
+docs/         FEM verification report, experiment protocol, shopping list, development log
 tests/        unit tests for the analytical parts
 ```
 
@@ -64,8 +64,9 @@ cd materials && python fit_hyperelastic.py ../experiments/example_synthetic_comp
 | Part | State |
 | --- | --- |
 | Hertz solution, model fitting, batch runner, v0 force model | run and unit-tested on synthetic data |
+| Open-source FEM solver `fea/axisym_fem.py` | within 1% of Hertz in the half-space limit and 2-4% of the thin-layer solution; see [docs/fem_verification.md](docs/fem_verification.md) |
 | `fea/axisym_indentation_pymapdl.py` | reference draft, never run against ANSYS |
-| Material parameters, FEA results, measurements | none yet |
+| Material parameters, ANSYS results, measurements | none yet |
 
 ## Licence
 

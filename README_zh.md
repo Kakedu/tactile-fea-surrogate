@@ -26,11 +26,11 @@ English: [README.md](README.md)
 ## 目录
 
 ```
-fea/          Hertz 解析解、PyMAPDL 接触模型、批量生成数据集
+fea/          Hertz 与薄层解析解、开源有限元求解器、PyMAPDL 接触模型、批量生成数据集
 materials/    由压缩试验拟合超弹性本构
-surrogate/    代理模型（v0 只预测力）
+surrogate/    代理模型（力模型、表面形貌基线）
 experiments/  测量记录模板、对比脚本、合成示例
-docs/         实验方案、采购清单、开发日志
+docs/         有限元验证报告、实验方案、采购清单、开发日志
 tests/        解析部分的单元测试
 ```
 
@@ -52,8 +52,9 @@ cd materials && python fit_hyperelastic.py ../experiments/example_synthetic_comp
 | 部分 | 状态 |
 | --- | --- |
 | Hertz 解、本构拟合、批处理、v0 力模型 | 已在合成数据上运行并通过单元测试 |
+| 开源有限元求解器 `fea/axisym_fem.py` | 半无限体极限下与 Hertz 解相差1%以内，薄层工况与解析解相差2%到4%，见 [docs/fem_verification.md](docs/fem_verification.md) |
 | `fea/axisym_indentation_pymapdl.py` | 参考草稿，从未在 ANSYS 上运行 |
-| 材料参数、仿真结果、实测数据 | 暂无 |
+| 材料参数、ANSYS 仿真结果、实测数据 | 暂无 |
 
 ## 许可证
 

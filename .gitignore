@@ -3,6 +3,7 @@ __pycache__/
 .pytest_cache/
 *.joblib
 data/*.npz
+!data/fem_open_*.npz
 # ANSYS working files and licences
 *.db
 *.rst

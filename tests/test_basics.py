@@ -54,3 +54,23 @@ def test_case_check_rejects_bad_parameters():
         except ValueError:
             continue
         raise AssertionError(f"accepted {bad}")
+
+
+def test_thin_layer_reduces_to_hertz_for_thick_layers():
+    import thin_layer
+    assert np.isclose(thin_layer.correction(4.0, 0.3, 1e9), 1.0)
+    assert np.isclose(thin_layer.force(4.0, 0.3, 0.05, 1e9), hertz.force(4.0, 0.3, 0.15, 0.5))
+    assert thin_layer.correction(4.0, 0.3, 4.0) > 1.3   # a 4 mm bonded layer is much stiffer
+
+
+def test_fem_matches_thin_layer_solution_on_a_coarse_mesh():
+    import pytest
+    pytest.importorskip("jax")
+    import thin_layer
+    from axisym_fem import solve_indentation
+
+    out = solve_indentation(R=4.0, depth=0.1, mu=0.05, nu=0.495, nr=18, nz=10)
+    ref = float(thin_layer.force(4.0, 0.1, 0.05, 4.0))
+    assert abs(out["force"] - ref) / ref < 0.05
+    assert out["max_penetration"] < 0.01 * 0.1
+    assert np.isclose(out["uz"][0], 0.1, atol=2e-3)   # the surface under the tip follows the sphere
