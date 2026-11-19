@@ -1,0 +1,17 @@
+__pycache__/
+*.pyc
+.pytest_cache/
+*.joblib
+data/*.npz
+# ANSYS working files and licences
+*.db
+*.rst
+*.esav
+*.emat
+*.full
+*.err
+*.log
+*.lock
+*.lic
+file*.*
+.DS_Store

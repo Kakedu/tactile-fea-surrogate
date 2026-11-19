@@ -1,0 +1,8 @@
+numpy
+scipy
+scikit-learn
+matplotlib
+joblib
+pytest
+# needed only for the ANSYS backend:
+ansys-mapdl-core
