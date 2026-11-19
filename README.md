@@ -1,5 +1,7 @@
 # Tactile sensor silicone layer: FEA to surrogate model
 
+**Author:** [Haoran_Du] · [duhaoran20021212@foxmail.com]
+
 **Status: in progress, started November 2026. No results yet.**
 中文说明见 [README_zh.md](README_zh.md).
 
