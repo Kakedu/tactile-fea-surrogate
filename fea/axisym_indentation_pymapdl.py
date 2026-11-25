@@ -1,8 +1,9 @@
 """2D axisymmetric model: rigid sphere pressed into a bonded silicone layer.
 
-STATUS: REFERENCE DRAFT, NEVER RUN. It was written without access to ANSYS.
-The command sequence follows standard MAPDL practice, but expect to debug it
-in week 3-4. Things most likely to need fixing are marked CHECK.
+STATUS: runs on ANSYS 2025 R1 (2026-11-25). Thick-layer check against Hertz
+(fea/hertz_check_mapdl.py): force within 1.2-2.2 % for depth 0.05-0.2 mm with Lagrange
+normal contact. The default (augmented Lagrange) contact let the sphere penetrate the soft
+silicone and gave 11 % too little force at 0.05 mm, so Lagrange is now the default.
 
 Build the model by hand in the GUI first (week 3). Then use this file to
 compare against your own script, not instead of writing one.
@@ -22,11 +23,12 @@ def solve_indentation(R: float, depth: float, mu: float, layer_thickness: float 
                       layer_radius: float = 12.0, nu: float = 0.499, friction: float = 0.0,
                       elem_size: float | None = None, n_substeps: int = 20, mapdl=None,
                       refine: float | None = None, far_size: float | None = None,
-                      flip_target: bool = False, exec_file: str | None = None, lagrange: bool = False):
+                      flip_target: bool = False, exec_file: str | None = None, lagrange: bool = True):
     """Return {"force": N, "r": mm array, "uz": mm array (positive = pushed down)}.
 
     refine: side of the square [0, refine] x [-refine, 0] meshed with elem_size; the rest uses far_size.
     flip_target: reverse the target normals (use if the first run finds no contact).
+    lagrange: Lagrange multiplier on the contact normal (no penetration). False = MAPDL default.
     """
     own = mapdl is None
     if own:
