@@ -20,21 +20,28 @@ import numpy as np
 
 def solve_indentation(R: float, depth: float, mu: float, layer_thickness: float = 4.0,
                       layer_radius: float = 12.0, nu: float = 0.499, friction: float = 0.0,
-                      elem_size: float | None = None, n_substeps: int = 20, mapdl=None):
-    """Return {"force": N, "r": mm array, "uz": mm array (positive = pushed down)}."""
+                      elem_size: float | None = None, n_substeps: int = 20, mapdl=None,
+                      refine: float | None = None, far_size: float | None = None,
+                      flip_target: bool = False, exec_file: str | None = None, lagrange: bool = False):
+    """Return {"force": N, "r": mm array, "uz": mm array (positive = pushed down)}.
+
+    refine: side of the square [0, refine] x [-refine, 0] meshed with elem_size; the rest uses far_size.
+    flip_target: reverse the target normals (use if the first run finds no contact).
+    """
     own = mapdl is None
     if own:
         from ansys.mapdl.core import launch_mapdl
-        mapdl = launch_mapdl()
+        mapdl = launch_mapdl(exec_file=exec_file, loglevel="ERROR")
     try:
+        es = elem_size or min(R, layer_thickness) / 20.0
         return _solve(mapdl, R, depth, mu, layer_thickness, layer_radius, nu, friction,
-                      elem_size or min(R, layer_thickness) / 20.0, n_substeps)
+                      es, n_substeps, refine, far_size or es, flip_target, lagrange)
     finally:
         if own:
             mapdl.exit()
 
 
-def _solve(mapdl, R, depth, mu, t, L, nu, friction, esize, nsub):
+def _solve(mapdl, R, depth, mu, t, L, nu, friction, esize, nsub, refine, far_size, flip_target, lagrange):
     mapdl.clear()
     mapdl.prep7()
 
@@ -46,16 +53,27 @@ def _solve(mapdl, R, depth, mu, t, L, nu, friction, esize, nsub):
     mapdl.tb("HYPER", 1, 1, 2, "NEO")
     mapdl.tbdata(1, mu, 2.0 / bulk)  # Neo-Hookean: initial shear modulus, d = 2/K
 
-    mapdl.rectng(0, L, -t, 0)
-    mapdl.esize(esize)  # uniform for now; refine the contact zone in week 8
     mapdl.type(1)
     mapdl.mat(1)
-    mapdl.amesh("ALL")
+    if refine:                       # fine square at the contact, coarse elsewhere (free quad mesh)
+        mapdl.rectng(0, refine, -refine, 0)
+        mapdl.rectng(0, L, -t, 0)
+        mapdl.aovlap("ALL")
+        mapdl.asel("S", "LOC", "X", 0, refine); mapdl.asel("R", "LOC", "Y", -refine, 0)
+        mapdl.esize(esize); mapdl.amesh("ALL")
+        mapdl.asel("INVE"); mapdl.esize(far_size); mapdl.amesh("ALL")
+        mapdl.allsel()
+    else:
+        mapdl.rectng(0, L, -t, 0)
+        mapdl.esize(esize)
+        mapdl.amesh("ALL")
 
     # --- contact pair: rigid target arc (sphere) + contact elements on the top surface
     mapdl.et(2, "TARGE169")
     mapdl.et(3, "CONTA171")  # 2-node contact, matches PLANE182
     mapdl.keyopt(3, 10, 2)   # update contact stiffness each iteration  CHECK
+    if lagrange:
+        mapdl.keyopt(3, 2, 3)  # Lagrange multiplier on the normal: no penetration (default allows some)
     mapdl.mp("MU", 2, friction)
     mapdl.r(2)               # real constant set 2 ties target and contact together
 
@@ -69,6 +87,10 @@ def _solve(mapdl, R, depth, mu, t, L, nu, friction, esize, nsub):
     mapdl.mat(2)
     mapdl.lesize(arc, "", "", 60)
     mapdl.lmesh(arc)
+    if flip_target:
+        mapdl.esel("S", "TYPE", "", 2)
+        mapdl.esurf("", "REVERSE")
+        mapdl.allsel()
     # CHECK: target normals must point towards the silicone. If the solution
     # reports no contact, reverse them with ESURF,,REVERSE on the target elements.
 
@@ -117,9 +139,14 @@ def _solve(mapdl, R, depth, mu, t, L, nu, friction, esize, nsub):
     mapdl.esel("S", "TYPE", "", 1)
     mapdl.nsle("S")
     mapdl.nsel("R", "LOC", "Y", 0)
-    r = np.asarray(mapdl.mesh.nodes)[:, 0]
-    uy = np.asarray(mapdl.post_processing.nodal_displacement("Y"))
+    r, uy = [], []
+    n = int(mapdl.get_value("NODE", 0, "NXTH"))        # walk the selected surface nodes
+    while n > 0:
+        r.append(mapdl.get_value("NODE", n, "LOC", "X"))
+        uy.append(mapdl.get_value("NODE", n, "U", "Y"))
+        n = int(mapdl.get_value("NODE", n, "NXTH"))
     mapdl.allsel()
+    r, uy = np.array(r), np.array(uy)
     order = np.argsort(r)
     return {"force": force, "r": r[order], "uz": -uy[order]}
 
